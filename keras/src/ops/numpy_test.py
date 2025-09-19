@@ -4545,6 +4545,26 @@ class NumpyOneInputOpsCorrectnessTest(testing.TestCase):
         self.assertAllEqual(knp.searchsorted(a, v), expected)
         self.assertAllEqual(knp.SearchSorted()(a, v), expected)
 
+    def test_searchsorted_vectorized_map_tensorflow(self):
+        if backend.backend() != "tensorflow":
+            self.skipTest("Only relevant for the TensorFlow backend.")
+
+        xs = keras.ops.stack(
+            [keras.ops.linspace(0.0, 1.0, 5) for _ in range(3)], axis=-1
+        )
+        inputs = keras.random.uniform((10, 3), seed=123)
+
+        result = keras.ops.vectorized_map(
+            lambda i: keras.ops.searchsorted(xs[:, i], inputs[:, i]),
+            keras.ops.arange(3),
+        )
+        expected = keras.ops.stack(
+            [keras.ops.searchsorted(xs[:, i], inputs[:, i]) for i in range(3)],
+            axis=0,
+        )
+
+        self.assertAllClose(result, expected)
+
     def test_sign(self):
         x = np.array([[1, -2, 3], [-3, 2, -1]])
         self.assertAllClose(knp.sign(x), np.sign(x))
